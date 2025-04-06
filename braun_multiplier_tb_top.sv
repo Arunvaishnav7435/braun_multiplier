@@ -1,8 +1,9 @@
 module braun_multiplier_tb_top;
-    logic [1:0] a, b;
-    logic [3:0] p;
+    `define N 2
+    logic [`N-1:0] a, b;
+    logic [2*`N-1:0] p;
     
-    braun_multiplier dut (a, b, p);
+    braun_multiplier #(`N) dut (a, b, p);
 
     initial begin
         // Test case 1: 0 * 0 = 0
