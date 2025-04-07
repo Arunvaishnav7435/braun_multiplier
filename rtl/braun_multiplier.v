@@ -1,4 +1,4 @@
-/*module half_adder(
+module half_adder(
     input  a, // First input
     input  b, // Second input
     output sum, // Sum output
@@ -22,15 +22,19 @@ module full_adder(
 
   assign cout = c1 | c2; // Final carry-out is OR of both carries
 endmodule
-*/
+
 module braun_multiplier #(parameter n = 4)(
     input  [n-1:0]   a, // n-bit input a
     input  [n-1:0]   b, // n-bit input b
+//    input           rst, // Reset signal
     output [2*n-1:0] prod  // 2n-bit output product
 );
 
   wire [n-1:0] partial_products [n-1:0]; // Partial products
-  reg [2*n-1:0] sum = 0;          // Intermediate sums starting with 0
+  wire [2*n-1:0] sum;          // Intermediate sums starting with 0
+  wire [2*n-1:0] carry ;           // Carry bits
+  wire [n-1:0] partial_sum;
+  wire [n-1:0] partial_carry [n-1:0]; // TODO: find the correct size for this wire
 
   // Generate partial products
   genvar i, j;
@@ -45,19 +49,51 @@ module braun_multiplier #(parameter n = 4)(
 //  assign p[0] = partial_products[0][0]; // First bit of product
 
   // first row has only half adders
-  integer p, q, r;
+  
 
-  always@(*) begin
-    for (p = 0; p < 2*n-1; p = p + 1) begin
-      for (q = 0; q < n; q = q + 1) begin
-        for (r = 0; r < n; r = r + 1) begin
-          if (p == q + r) begin
-            sum[p] = sum[p] + partial_products[q][r];
+  /*always@(*) begin
+    if(rst) begin
+      for (p = 0; p < 2*n-1; p = p + 1) begin
+        sum[p] = 0; // Reset sum to zero
+      end
+      partial_sum = 0; // Reset partial sum to zero
+    end
+    else begin
+      for (p = 0; p < 2*n-1; p = p + 1) begin
+        for (q = 0; q < n; q = q + 1) begin
+          partial_sum = partial_sum partial_products[q][p-q]; // Sum of partial products
+        end
+        if(p == 0)
+          sum[p] = partial_sum;
+        else
+          sum[p] = sum[p-1][1] + partial_sum; // Cumulative sum of partial products
+        partial_sum = 0; // Reset partial sum for next iteration
+      end
+    end 
+  end
+*/
+  genvar p, q, r;
+  generate
+    for (p = 0; p < 2*n-2; p = p + 1) begin
+      for(q = 0; q < n; q = q + 1) begin
+        for(r = 0; r < n; r = r + 1) begin
+          if(p == q + r) begin
+            if(q == 0)
+              full_adder FA(partial_products[q][r], 0, 0, partial_sum[q], partial_carry[q][r]);
+            else
+              full_adder FA(partial_products[q][r], partial_sum[q-1], partial_carry[q-1][r+1], partial_sum[q], partial_carry[q][r]); // Full adder for subsequent rows
+            if(p == q)
+              assign sum[p] = partial_sum[q]; // Assign sum for the last column
           end
         end
       end
-    end
-  end
+    end    
+  endgenerate
 
-  assign prod = sum; // Assign final product
+  genvar k;
+  generate
+    for (k = 0; k < 2*n-1; k = k + 1) begin
+      assign prod[k] = sum[k]; // Assign final product bits
+    end
+  endgenerate
 endmodule
