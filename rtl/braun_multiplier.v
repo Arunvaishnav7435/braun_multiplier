@@ -22,8 +22,8 @@ module full_adder(
 
   assign cout = c1 | c2; // Final carry-out is OR of both carries
 endmodule
-
-module braun_multiplier #(parameter n = 4)(
+/*
+module braun_multiplier #(parameter n = 3)(
     input  [n-1:0]   a, // n-bit input a
     input  [n-1:0]   b, // n-bit input b
 //    input           rst, // Reset signal
@@ -51,7 +51,7 @@ module braun_multiplier #(parameter n = 4)(
   // first row has only half adders
   
 
-  /*always@(*) begin
+  always@(*) begin
     if(rst) begin
       for (p = 0; p < 2*n-1; p = p + 1) begin
         sum[p] = 0; // Reset sum to zero
@@ -71,7 +71,7 @@ module braun_multiplier #(parameter n = 4)(
       end
     end 
   end
-*/
+
   genvar p, q, r;
   generate
     for (p = 0; p < 2*n-2; p = p + 1) begin
@@ -96,4 +96,33 @@ module braun_multiplier #(parameter n = 4)(
       assign prod[k] = sum[k]; // Assign final product bits
     end
   endgenerate
+endmodule
+*/
+module braun_multiplier #(parameter N = 2) (
+    input  [N-1:0] A, B,
+    output [2*N-1:0] P
+);
+    wire [N-1:0] partial_products[N-1:0];
+    wire [2*N-1:0] sum[N:0];
+
+    assign sum[0] = 0;
+
+    // Generate partial products
+    genvar i, j;
+    generate
+        for (i = 0; i < N; i = i + 1) begin : partial_prod_gen
+            assign partial_products[i] = A & {N{B[i]}};
+        end
+    endgenerate
+
+    // Generate carry-save adders
+    generate
+        for (i = 0; i < N; i = i + 1) begin : sum_gen
+            assign sum[i+1] = sum[i] + (partial_products[i] << i);
+        end
+    endgenerate
+
+    // Final product output
+    assign P = sum[N];
+
 endmodule
